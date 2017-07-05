@@ -121,33 +121,22 @@ public class MultithreadDownloadByRandomAccessFile {
         System.out.println(path + " deleted.");
     }
 
-    private static void mergeToTarget(String target, Part part, int bufferSize) {
-        RandomAccessFile readRaf = null;
-        RandomAccessFile writeRaf = null;
-        try {
-            readRaf = new RandomAccessFile(part.getPath(), "r");
-            writeRaf = new RandomAccessFile(target, "rw");
+    private static void mergeToTarget(String target, final Part part, final int bufferSize) {
 
-            byte[] buffer = new byte[bufferSize];
-            long startPointer = part.getStartPointer();
-            int lengthToRead;
-            while((lengthToRead = readRaf.read(buffer)) > 0) {
-                writeRaf.seek(startPointer);
-                writeRaf.write(buffer, 0, lengthToRead);
-                startPointer += lengthToRead;
+        executeReadAndWrite(part.getPath(), target, new ReadAndWriteAction() {
+            @Override
+            public void doInAction(RandomAccessFile readRaf, RandomAccessFile writeRaf) throws IOException {
+                byte[] buffer = new byte[bufferSize];
+                long startPointer = part.getStartPointer();
+                int lengthToRead;
+                while((lengthToRead = readRaf.read(buffer)) > 0) {
+                    writeRaf.seek(startPointer);
+                    writeRaf.write(buffer, 0, lengthToRead);
+                    startPointer += lengthToRead;
+                }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if(null != readRaf)
-                    readRaf.close();
-                if(null != writeRaf)
-                    writeRaf.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        });
+
     }
 
     private static void execute(Action action) {
@@ -155,6 +144,28 @@ public class MultithreadDownloadByRandomAccessFile {
         action.doInAction();
         long end = System.currentTimeMillis();
         System.out.println("Time cost: " + (end - start));
+    }
+
+    private static void executeReadAndWrite(String readPath, String writePath, ReadAndWriteAction action) {
+
+        RandomAccessFile readRaf = null;
+        RandomAccessFile writeRaf = null;
+        try {
+            readRaf = new RandomAccessFile(readPath, "r");
+            writeRaf = new RandomAccessFile(writePath, "rw");
+            action.doInAction(readRaf, writeRaf);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if(readRaf != null)
+                    readRaf.close();
+                if(writeRaf != null)
+                    writeRaf.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     static class Part {
@@ -173,25 +184,14 @@ public class MultithreadDownloadByRandomAccessFile {
             return path;
         }
 
-        public void setPath(String path) {
-            this.path = path;
-        }
-
         public long getStartPointer() {
             return startPointer;
-        }
-
-        public void setStartPointer(long startPointer) {
-            this.startPointer = startPointer;
         }
 
         public int getLength() {
             return length;
         }
 
-        public void setLength(int length) {
-            this.length = length;
-        }
     }
 
     static class RandomReadAndWriteTask implements Callable<Part> {
@@ -212,42 +212,32 @@ public class MultithreadDownloadByRandomAccessFile {
             return part;
         }
 
-        public String randomReadAndWrite(String fromPath, int bufferSize, Part part) {
-            RandomAccessFile readRaf = null;
-            RandomAccessFile writeRaf = null;
-            try {
-                readRaf = new RandomAccessFile(fromPath, "r");
-                writeRaf = new RandomAccessFile(part.getPath(), "rw");
-                readRaf.seek(part.getStartPointer());
-                writeRaf.seek(0);
-                byte[] buffer = new byte[bufferSize];
+        public String randomReadAndWrite(String fromPath, final int bufferSize, final Part part) {
 
-                int totalLengthToRead = part.getLength();
-                long startPointer = part.getStartPointer();
-                int lengthToRead;
-                int lengthReadAlready = 0;
+            executeReadAndWrite(fromPath, part.getPath(), new ReadAndWriteAction() {
+                @Override
+                public void doInAction(RandomAccessFile readRaf, RandomAccessFile writeRaf) throws IOException {
+                    readRaf.seek(part.getStartPointer());
+                    writeRaf.seek(0);
+                    byte[] buffer = new byte[bufferSize];
 
-                while(totalLengthToRead > 0 && (lengthToRead = totalLengthToRead < bufferSize ? totalLengthToRead : bufferSize) > 0) {
-                    readRaf.read(buffer);
-                    writeRaf.write(buffer, 0, lengthToRead);
-                    totalLengthToRead -= lengthToRead;
-                    startPointer += lengthToRead;
-                    lengthReadAlready += lengthToRead;
-                    readRaf.seek(startPointer);
-                    writeRaf.seek(lengthReadAlready);
+                    int totalLengthToRead = part.getLength();
+                    long startPointer = part.getStartPointer();
+                    int lengthToRead;
+                    int lengthReadAlready = 0;
+
+                    while(totalLengthToRead > 0 && (lengthToRead = totalLengthToRead < bufferSize ? totalLengthToRead : bufferSize) > 0) {
+                        readRaf.read(buffer);
+                        writeRaf.write(buffer, 0, lengthToRead);
+                        totalLengthToRead -= lengthToRead;
+                        startPointer += lengthToRead;
+                        lengthReadAlready += lengthToRead;
+                        readRaf.seek(startPointer);
+                        writeRaf.seek(lengthReadAlready);
+                    }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                try {
-                    if(readRaf != null)
-                        readRaf.close();
-                    if(writeRaf != null)
-                        writeRaf.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+            });
+
             return part.getPath();
         }
 
