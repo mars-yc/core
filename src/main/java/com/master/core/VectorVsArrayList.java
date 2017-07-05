@@ -16,7 +16,7 @@ import java.util.Vector;
  *     then you'll see the Vector need much more time as it to retrieve and release lock
  * </p>
  */
-public class PerformanceOfVectorVsArrayList {
+public class VectorVsArrayList {
 
     private static final int MAX_INTEGER_COUNT = 100000000;
 //    private static final int MAX_INTEGER_COUNT = 10000000;
