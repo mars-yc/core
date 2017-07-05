@@ -48,10 +48,7 @@ public class RandomAccessListVsSequentialList {
         execute(new Action() {
             @Override
             public void doInAction() {
-//                for(Iterator<T> it = list.iterator(); it.hasNext(); it.next());
-                for(Iterator<T> it = list.iterator(); it.hasNext(); ) {
-                    it.next();
-                }
+                for(Iterator<T> it = list.iterator(); it.hasNext(); it.next());
             }
         });
     }
