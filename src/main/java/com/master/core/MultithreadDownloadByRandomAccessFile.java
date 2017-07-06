@@ -16,8 +16,8 @@ public class MultithreadDownloadByRandomAccessFile {
 //    private static final String FILE_TO_WRITE = "H:/copy_of_test2.rmvb";
 
     public static void main(String[] args) {
-//        singleThreadDownloading(FILE_TO_READ, FILE_TO_WRITE); //~70 seconds
-        multiThreadDownloading(FILE_TO_READ, FILE_TO_WRITE, 5, 1024*1024*10);
+        singleThreadDownloading(FILE_TO_READ, FILE_TO_WRITE); //~70 seconds
+//        multiThreadDownloading(FILE_TO_READ, FILE_TO_WRITE, 5, 1024*1024*10);
     }
 
     public static void singleThreadDownloading(final String from, final String to) {
